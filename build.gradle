@@ -1,0 +1,60 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven {
+            name = "forge"
+            url = "https://files.minecraftforge.net/maven"
+        }
+    }
+    dependencies {
+        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
+    }
+}
+plugins {
+    id "org.ajoberstar.reckon" version "0.9.0"
+}
+apply plugin: "net.minecraftforge.gradle.forge"
+apply plugin: "checkstyle"
+if (file("../.etc/srscode-MC.gradle").exists()) {apply from: "../.etc/srscode-MC.gradle"}
+
+sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
+group = "de.srsco"
+archivesBaseName = project.name
+
+reckon {
+    scopeFromProp()
+    stageFromProp("dev", "final")
+}
+
+checkstyle {
+    setConfig resources.text.fromUri("https://srscode.github.io/checkstyle/srsCode-MC-checkstyle.xml")
+    setReportsDir file("${project.buildDir}/reports/checkstyle")
+    setToolVersion "8.16"
+}
+tasks.withType(Checkstyle) {
+    reports.xml.enabled  = false
+    reports.html.enabled = true
+}
+
+minecraft {
+    setVersion  "${project.mc_version}-${project.forge_version}"
+    setMappings "${project.mapping_channel}_${project.mapping_version}"
+    setRunDir   "run"
+    replace     "@VERSION@", project.version as String
+    replaceIn   "ReOpenAL.java"
+    setMakeObfSourceJar false
+}
+
+processResources {
+    inputs.property "version", project.version as String
+    from(sourceSets.main.resources.srcDirs) {
+        include "mcmod.info"
+        expand  "version": project.version
+    }
+    from(sourceSets.main.resources.srcDirs) {exclude "mcmod.info"}
+}
+
+jar.manifest.attributes([
+    "FMLAT"         : "reopenal_at.cfg",
+    "Maven-Artifact": "${project.group}:${archivesBaseName}:${project.version}"
+])
